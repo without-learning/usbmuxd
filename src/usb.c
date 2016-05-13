@@ -289,8 +289,13 @@ static int usb_device_add(libusb_device* dev)
 	libusb_device_handle *handle;
 	usbmuxd_log(LL_INFO, "Found new device with v/p %04x:%04x at %d-%d", devdesc.idVendor, devdesc.idProduct, bus, address);
 	// potentially blocking operations follow; they will only run when new devices are detected, which is acceptable
-	if((res = libusb_open(dev, &handle)) != 0) {
-		usbmuxd_log(LL_WARNING, "Could not open device %d-%d: %d", bus, address, res);
+	if ((res = libusb_open(dev, &handle)) != 0) {
+		if (res == LIBUSB_ERROR_NOT_SUPPORTED) {
+			usbmuxd_log(LL_WARNING, "Could not open device %d-%d. Libusb has reported it does not support the device. If on Windows, did you install the libusb drivers for the device?", bus, address, res);
+		}
+		else {
+			usbmuxd_log(LL_WARNING, "Could not open device %d-%d: %d", bus, address, res);
+		}
 		return -1;
 	}
 
