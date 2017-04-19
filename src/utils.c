@@ -253,14 +253,27 @@ void buffer_read_from_filename(const char *filename, char **buffer, uint64_t *le
 	*length = size;
 }
 
-void buffer_write_to_filename(const char *filename, const char *buffer, uint64_t length)
+int buffer_write_to_filename(const char *filename, const char *buffer, uint64_t length)
 {
 	FILE *f;
 
 	f = fopen(filename, "wb");
 	if (f) {
-		fwrite(buffer, sizeof(char), length, f);
+		int written = fwrite(buffer, sizeof(char), length, f);
 		fclose(f);
+
+		if (written == length) {
+			return 1;
+		}
+		else {
+			// Not all data could be written.
+			errno = EIO;
+			return 0;
+		}
+	}
+	else {
+		// Failed to open the file, let the caller know.
+		return 0;
 	}
 }
 
@@ -304,11 +317,11 @@ int plist_write_to_filename(plist_t plist, const char *filename, enum plist_form
 	else
 		return 0;
 
-	buffer_write_to_filename(filename, buffer, length);
+	int res  = buffer_write_to_filename(filename, buffer, length);
 
 	free(buffer);
 
-	return 1;
+	return res;
 }
 
 #ifdef __APPLE__
